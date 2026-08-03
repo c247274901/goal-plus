@@ -212,6 +212,7 @@ def test_annotator_config_overrides_then_inherits_worker_launch(
 
     task = runtime._load_evidence_annotation_task(run_id, candidate_id, 1)
     assert task is not None and task.profile is not None
+    assert task.profile.host == "codex"
     assert task.profile.model == "worker-model"
     assert task.profile.reasoning_effort == "low"
     assert task.profile.timeout_seconds == 90
@@ -243,9 +244,13 @@ def test_annotator_config_overrides_then_inherits_worker_launch(
     assert continued_context["annotator"]["model"] == "worker-model"
 
 
-def test_pi_worker_model_is_not_reused_as_a_codex_annotator_model(
+def test_pi_worker_model_is_inherited_by_pi_annotator(
     tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    pi_home = tmp_path / "pi-home"
+    pi_home.mkdir()
+    monkeypatch.setenv("PI_CODING_AGENT_DIR", str(pi_home))
     runtime, run_id, [candidate] = _search_with_candidates(
         tmp_path,
         1,
@@ -268,10 +273,14 @@ def test_pi_worker_model_is_not_reused_as_a_codex_annotator_model(
     )
 
     task = runtime._load_evidence_annotation_task(run_id, candidate_id, 1)
-    assert task is not None
-    assert task.profile is None
-    assert task.state == "terminal_error"
-    assert "pi-rpc" in (task.last_error or "")
+    assert task is not None and task.profile is not None
+    assert task.state == "pending"
+    assert task.profile.host == "pi-rpc"
+    assert task.profile.model == "bench-openai/gpt-test"
+    assert task.profile.reasoning_effort == "high"
+    assert task.profile.pi_home == str(pi_home)
+    assert task.profile.codex_home is None
+    assert task.profile.provider is None
 
 
 def test_evidence_commit_captures_change_back_to_source(tmp_path: Path) -> None:

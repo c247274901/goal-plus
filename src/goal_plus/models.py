@@ -210,10 +210,12 @@ class ResolvedCodexProvider(SearchModel):
 
 
 class ResolvedEvidenceAnnotatorProfile(SearchModel):
+    host: AgentHostKind = "codex"
     model: str | None = None
     reasoning_effort: str | None = None
     timeout_seconds: int = Field(gt=0, le=600)
     codex_home: str | None = None
+    pi_home: str | None = None
     provider: ResolvedCodexProvider | None = None
 
 
