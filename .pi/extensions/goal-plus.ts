@@ -441,6 +441,14 @@ const RuntimeToolSchemas: Record<string, TSchema> = {
 		{ agent_session_id: Type.String() },
 		{ additionalProperties: false },
 	),
+	search_get_evidence_detail: Type.Object(
+		{
+			agent_session_id: Type.String(),
+			candidate_id: Type.String(),
+			iteration: PositiveInteger,
+		},
+		{ additionalProperties: false },
+	),
 	search_get_agent_observability: Type.Object(
 		{ agent_session_id: Type.String() },
 		{ additionalProperties: false },
@@ -528,7 +536,9 @@ const RuntimeToolDescriptions: Record<string, string> = {
 	search_create:
 		"从 frozen_spec_id 创建 Search run。初始 run 必须省略 source_run_id，或在 strict schema 下传 null；仅在已有真实前驱时传入准确的 run_* ID，绝不能传 initial 或 in_progress。",
 	search_get_global_evidence:
-		"读取当前 run 的窄 Global Evidence 视图。每项包含 verifier attempt commit、硬 score、keep/retain/discard/failure disposition、可能延迟的客观 View，以及启用时由 ViewAgent 后验生成的开放式 supplemental_evaluation 和动态 peer 比较；任一 View 为 null 时都无需等待，可先依据 Evidence 独立探索。",
+		"读取当前 run 的窄 Global Evidence 视图。每项包含 verifier attempt commit、硬 score、keep/retain/discard/failure disposition、可能延迟的客观 View，以及可选 supplemental evaluation 的可用标记；任一 View 为 null 时都无需等待，可先依据 Evidence 独立探索。",
+	search_get_evidence_detail:
+		"按需展开一条已结算 Evidence 的 supplemental evaluation。仅当 agent context 声明该能力开启且目标行 supplemental_available=true 时调用；independent 模式只允许读取自己的 candidate。",
 	search_run_verifier:
 		"为一个候选评分。worker process verifier 必须提供一句话 hypothesis，客观概括本轮实际尝试。每份返回的 verifier 报告都会在运行时拥有、继承而来的 workspace/results.tsv 中追加且只追加一条已验证记录，并提交该文件。process verifier 返回 keep/retain/discard/failure disposition；严格改善为 keep，同分为 retain 并成为 candidate-local 最新基线，只有退化或验证失败时恢复此前硬分最佳。开放式补充评价和动态 peer 比较不改变结算、硬 score 或最终 PASS/FAIL。带 candidate_action=stop_and_report 的 VerifierWorkspaceSideEffect 属于基础设施失败：worker 必须停止，不能清理或重试，使父级能够修复并重新冻结。",
 	search_invalidate_run:
@@ -1414,6 +1424,7 @@ export default function (pi: ExtensionAPI) {
 	const workerTools = [
 		"search_get_agent_context",
 		"search_get_global_evidence",
+		"search_get_evidence_detail",
 		"search_run_verifier",
 		"search_list_iterations",
 	];

@@ -35,6 +35,7 @@ SEARCH_TOOL_NAMES = {
     "search_continue_agent_session",
     "search_get_agent_context",
     "search_get_global_evidence",
+    "search_get_evidence_detail",
     "search_get_agent_observability",
     "search_run_verifier",
     "search_list_iterations",
